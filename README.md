@@ -102,6 +102,7 @@ files.
 
 ## Style
 
-All python code will be automatically formatted using `Black` through `pre-commit`.
-`flake8` is employed to correct any other style errors. Please familiarize yourself
-with the [`Google python style guide`](https://google.github.io/styleguide/pyguide.html).
+Python code is formatted with `Black` and import-sorted with `isort` through
+`pre-commit`. CI also runs `flake8`, the repository strict lint gate, and the
+quality gates in `tools/quality_gates.py`. Please familiarize yourself with the
+[`Google python style guide`](https://google.github.io/styleguide/pyguide.html).

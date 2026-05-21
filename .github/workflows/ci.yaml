@@ -9,8 +9,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, ubuntu-18.04, macos-latest]
-        python-version: [3.6, 3.7, 3.8]
+        os: [ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v2
@@ -61,7 +61,11 @@ jobs:
         bazel test --test_output=streamed //...
 
     - name: Style Test
-      run: flake8
+      run: |
+        black --check .
+        isort --check-only .
+        flake8
+        python tools/python_lint.py
 
     - name: Quality Gates
       run: python tools/quality_gates.py

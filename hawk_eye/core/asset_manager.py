@@ -57,7 +57,7 @@ def pull_fonts() -> None:
     download_file(config.FONTS_URL, config.ASSETS_DIR)
 
 
-def upload_file(source_path: pathlib.Path, destination: str):
+def upload_file(source_path: pathlib.Path, destination: str) -> None:
     """A generic function for uploading a file from local storage to the cloud.
 
     Args:

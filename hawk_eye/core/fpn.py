@@ -8,7 +8,7 @@ import collections
 import torch
 
 
-def depthwise(in_channels: int, out_channels: int):
+def depthwise(in_channels: int, out_channels: int) -> torch.nn.Module:
     """Build a depthwise separable convolution block.
 
     Args:
@@ -31,7 +31,7 @@ def depthwise(in_channels: int, out_channels: int):
     )
 
 
-def conv3x3(in_channels: int, out_channels: int):
+def conv3x3(in_channels: int, out_channels: int) -> torch.nn.Module:
     """Build a standard 3x3 convolution.
 
     Args:

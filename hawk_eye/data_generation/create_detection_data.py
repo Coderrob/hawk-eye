@@ -298,7 +298,7 @@ def get_backgrounds() -> List[pathlib.Path]:
     return filenames
 
 
-def get_base_shapes(shape):
+def get_base_shapes(shape) -> List[Image.Image]:
     """Get base shape images for a shape type.
 
     Args:
@@ -314,7 +314,7 @@ def get_base_shapes(shape):
     ]
 
 
-def random_list(items, count):
+def random_list(items, count) -> list:
     """Get a randomly sampled list.
 
     Args:
@@ -376,7 +376,7 @@ def create_shape(
     return image
 
 
-def get_base(base, target_rgb, size):
+def get_base(base, target_rgb, size) -> Image.Image:
     """Copy and recolor a base shape.
 
     Args:
@@ -442,7 +442,7 @@ def add_alphanumeric(
     return image
 
 
-def rotate_shape(image, angle):
+def rotate_shape(image, angle) -> Image.Image:
     """Rotate a target shape image.
 
     Args:

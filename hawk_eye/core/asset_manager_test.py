@@ -37,7 +37,7 @@ class FileUpload(unittest.TestCase):
 
 
 class FileDownload(unittest.TestCase):
-    def test_download_file(self):
+    def test_download_file(self) -> None:
         """Check that an uploaded tarball can be downloaded and extracted."""
 
         # Create and upload the file

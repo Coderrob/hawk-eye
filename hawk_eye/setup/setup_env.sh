@@ -29,8 +29,6 @@ if [ $USE_VENV -eq 1 ]; then
     source "$VENV_PATH/bin/activate"
 fi
 
-python3 -m pip install -U Cython==0.29.21 numpy==1.17.4
-python3 -m pip install -U dataclasses==0.6
 python3 -m pip install -U -r hawk_eye/setup/requirements.txt
 pre-commit && pre-commit install
 

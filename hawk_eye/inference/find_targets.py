@@ -4,7 +4,7 @@
 import argparse
 import pathlib
 import json
-from typing import List, Tuple
+from typing import Iterator, List, Tuple
 
 from PIL import Image
 from PIL import ImageDraw
@@ -102,7 +102,7 @@ def tile_image(
 
 def create_batches(
     image_tensor: torch.Tensor, coords: List[Tuple[int, int]], batch_size: int
-):
+) -> Iterator[Tuple[torch.Tensor, List[Tuple[int, int]]]]:
     """Creates batches of images based on the supplied params. The whole image
     is tiled first, the batches are generated.
 

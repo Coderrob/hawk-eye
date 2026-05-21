@@ -198,7 +198,7 @@ def add_shapes(
     return background.convert("RGB")
 
 
-def get_backgrounds():
+def get_backgrounds() -> List[Image.Image]:
     """Get the background assets.
 
     Returns:
@@ -212,7 +212,7 @@ def get_backgrounds():
     return [Image.open(img).resize(config.FULL_SIZE) for img in filenames]
 
 
-def get_base_shapes(shape):
+def get_base_shapes(shape) -> List[Image.Image]:
     """Get base shape images for a shape type.
 
     Args:
@@ -226,7 +226,7 @@ def get_base_shapes(shape):
     return [Image.open(base_path)]
 
 
-def random_list(items, count):
+def random_list(items, count) -> list:
     """Get a randomly sampled list.
 
     Args:
@@ -287,7 +287,7 @@ def create_shape(
     return image, img_name
 
 
-def get_base(base, target_rgb, size):
+def get_base(base, target_rgb, size) -> Image.Image:
     """Copy and recolor the base shape.
 
     Args:
@@ -356,7 +356,7 @@ def add_alphanumeric(
     return image
 
 
-def rotate_shape(image, shape, angle):
+def rotate_shape(image, shape, angle) -> Image.Image:
     """Rotate a shape image.
 
     Args:

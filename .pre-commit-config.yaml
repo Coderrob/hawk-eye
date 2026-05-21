@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.2.0
+    rev: v6.0.0
     hooks:
     -   id: check-yaml
     -   id: trailing-whitespace
@@ -8,11 +8,24 @@ repos:
         args: ['--maxkb=25']
     -   id: end-of-file-fixer
 -   repo: https://github.com/psf/black
-    rev: 19.10b0
+    rev: 26.5.1
     hooks:
     -   id: black
+-   repo: https://github.com/pycqa/isort
+    rev: 8.0.1
+    hooks:
+    -   id: isort
+-   repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
+    hooks:
+    -   id: flake8
 -   repo: local
     hooks:
+    -   id: python-lint
+        name: strict python lint
+        entry: python tools/python_lint.py
+        language: system
+        pass_filenames: false
     -   id: quality-gates
         name: quality gates
         entry: python tools/quality_gates.py

@@ -96,6 +96,7 @@ try:
         description=("Find targets"),
         author="UAV Austin Image Recognition",
         packages=setuptools.find_packages(),
+        python_requires=">=3.11",
         cmdclass={"build": Build, "prepare_models": PrepareModels, "test": Test},
         include_package_data=True,
         install_requires=_get_packages(),

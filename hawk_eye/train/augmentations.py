@@ -23,20 +23,20 @@ def clf_train_augs(height: int, width: int) -> albu.Compose:
             albu.Resize(height=height, width=width),
             albu.OneOf(
                 [
-                    albu.IAAAffine(shear=6, rotate=5, always_apply=True),
+                    albu.Affine(shear=6, rotate=5, p=1.0),
                     albu.ShiftScaleRotate(
                         shift_limit=0.025, scale_limit=0.1, rotate_limit=10
                     ),
                 ]
             ),
             albu.ShiftScaleRotate(shift_limit=0.025, scale_limit=0.1, rotate_limit=10),
-            albu.Flip(),
+            albu.OneOf([albu.HorizontalFlip(p=1.0), albu.VerticalFlip(p=1.0)]),
             albu.RandomRotate90(),
             albu.OneOf(
                 [
                     albu.HueSaturationValue(p=1.0),
-                    albu.IAAAdditiveGaussianNoise(p=1.0),
-                    albu.IAASharpen(p=1.0),
+                    albu.GaussNoise(p=1.0),
+                    albu.Sharpen(p=1.0),
                     albu.RandomBrightnessContrast(
                         brightness_limit=0.1, contrast_limit=0.1, p=1.0
                     ),
@@ -85,13 +85,13 @@ def det_train_augs(height: int, width: int) -> albu.Compose:
         [
             albu.Resize(height=height, width=width),
             albu.ShiftScaleRotate(shift_limit=0.025, scale_limit=0.1, rotate_limit=10),
-            albu.Flip(),
+            albu.OneOf([albu.HorizontalFlip(p=1.0), albu.VerticalFlip(p=1.0)]),
             albu.RandomRotate90(),
             albu.OneOf(
                 [
                     albu.HueSaturationValue(p=1.0),
-                    albu.IAAAdditiveGaussianNoise(p=1.0),
-                    albu.IAASharpen(p=1.0),
+                    albu.GaussNoise(p=1.0),
+                    albu.Sharpen(p=1.0),
                     albu.RandomBrightnessContrast(
                         brightness_limit=0.1, contrast_limit=0.1, p=1.0
                     ),
@@ -135,7 +135,9 @@ def feature_extraction_aug(height: int, width: int) -> albu.Compose:
         [
             albu.Resize(height=height, width=width),
             albu.Rotate(5),
-            albu.RandomBrightnessContrast(0.05, 0.05),
+            albu.RandomBrightnessContrast(
+                brightness_limit=0.05, contrast_limit=0.05
+            ),
             albu.GaussianBlur(blur_limit=4),
             albu.Normalize(),
         ]

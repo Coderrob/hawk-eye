@@ -1,0 +1,33 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - ci
+
+  - package-ecosystem: pip
+    directory: /hawk_eye/setup
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - python
+    groups:
+      python-runtime:
+        patterns:
+          - "*"
+
+  - package-ecosystem: pip
+    directory: /docs
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+      - docs
+    groups:
+      docs-runtime:
+        patterns:
+          - "*"

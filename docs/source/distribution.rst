@@ -13,11 +13,13 @@ downloads them. The package is partially defined by ``MANIFEST.in`` file.
 
 You can run the build locally with
 ::
+
     ./setup.py bdist_wheel
 
 Also, the tests from ``test.test_inference`` are included in the package to ensure the
 application runs. These tests can be run with
 ::
+
     ./setup.py test
 
 -----------------
@@ -28,8 +30,9 @@ It's tedious to manually handle the package building an distribution, so a Githu
 workflow was created.
 `This <https://github.com/uavaustin/hawk-eye/blob/master/.github/workflows/create_release.yaml>`_
 automatically builds the release under two conditions:
-    1. The code is merged into master
-    2. The version inside ``version.txt`` has been changed to a git tag that does not exist.
+
+1. The code is merged into master.
+2. The version inside ``version.txt`` has been changed to a git tag that does not exist.
 
 So, whenever something related to our package changes, update the version and merge into
 master after a proper PR review. You should find after a couple minutes, a release tag,

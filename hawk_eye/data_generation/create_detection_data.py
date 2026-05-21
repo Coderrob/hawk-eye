@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """ This script generates training data for the object detector model. The output will be
 images and the corresponding COCO metadata jsons. For most RetinaNet related training we
-can train on images with _and without_ targets. Training on images without any targets
+can train on images with and without targets. Training on images without any targets
 is valuable so the model sees that not every image will have a target, as this is the
 real life case. """
 

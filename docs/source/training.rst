@@ -16,11 +16,13 @@ Examples
 
 Classification:
 ::
+
     PYTHONPATH=. hawk_eye/train/train_clf.py \
         --config hawk_eye/configs/vovnet.yaml
 
 Detection:
 ::
+
     PYTHONPATH=. hawk_eye/train/train_det.py \
         --config hawk_eye/configs/vovnet-det.yaml
 

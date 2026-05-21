@@ -5,6 +5,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
 jobs:
 
   build-docs:
@@ -13,48 +16,27 @@ jobs:
 
     steps:
 
-    - uses: actions/setup-python@v2
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
       with:
         python-version: "3.12"
-
-    - uses: actions/checkout@v2
-
-    - name: Cache pip
-      uses: actions/cache@v2
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-          ${{ runner.os }}-
+        cache: pip
+        cache-dependency-path: docs/requirements.txt
 
     - name: Install dependencies
       run: |
         python3 -m pip install --upgrade pip
-        hawk_eye/setup/setup_env.sh
         python3 -m pip install -r docs/requirements.txt
 
     - name: make-docs
       run: |
         cd docs/source
-        sphinx-build -b html . _build
+        sphinx-build -W --keep-going -b html . _build
 
-    - name: Commit documentation changes
-      run: |
-        git clone https://github.com/uavaustin/hawk-eye.git --branch gh-pages --single-branch gh-pages
-        cp -r docs/source/_build/* gh-pages/
-        cd gh-pages
-        touch .nojekyll
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add .
-        git commit -m "Update documentation" -a || true
-        # The above command will fail if no changes were present, so we ignore
-        # that.
-
-    - name: Push changes
-      uses: ad-m/github-push-action@master
+    - name: Deploy documentation
+      uses: peaceiris/actions-gh-pages@v4
       with:
-        branch: gh-pages
-        directory: gh-pages
         github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: docs/source/_build

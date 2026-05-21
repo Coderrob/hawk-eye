@@ -49,7 +49,18 @@ extensions = [
     "sphinx.ext.autosectionlabel",
 ]
 autoclass_content = "both"
-autodoc_mock_imports = ["google"]
+autodoc_mock_imports = [
+    "albumentations",
+    "cv2",
+    "google",
+    "numpy",
+    "PIL",
+    "pycocotools",
+    "requests",
+    "torch",
+    "torchvision",
+    "tqdm",
+]
 
 # build the templated autosummary files
 autosummary_generate = True

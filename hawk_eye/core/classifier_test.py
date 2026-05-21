@@ -21,30 +21,37 @@ class ClassifierModels(unittest.TestCase):
         return predictions.shape == torch.Size([1, num_classes])
 
     def test_vovnet_19_clf_dw(self) -> None:
+        """Check that VoVNet-19 classifier depthwise model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="vovnet-19-clf-dw")
         self.assertTrue(self._test_model_output(model, 2))
 
     def test_vovnet_19_slim_dw(self) -> None:
+        """Check that slim depthwise VoVNet-19 model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="vovnet-19-slim-dw")
         self.assertTrue(self._test_model_output(model, 2))
 
     def test_vovnet_19_dw(self) -> None:
+        """Check that depthwise VoVNet-19 model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="vovnet-19-dw")
         self.assertTrue(self._test_model_output(model, 2))
 
     def test_vovnet_19_slim(self) -> None:
+        """Check that slim VoVNet-19 model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="vovnet-19-slim")
         self.assertTrue(self._test_model_output(model, 2))
 
     def test_vovnet_39(self) -> None:
+        """Check that VoVNet-39 model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="vovnet-39")
         self.assertTrue(self._test_model_output(model, 2))
 
     def test_rexnet_v1(self) -> None:
+        """Check that ReXNet v1 model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="rexnet-v1")
         self.assertTrue(self._test_model_output(model, 2))
 
     def test_rexnet_lite0(self) -> None:
+        """Check that ReXNet lite0 model produces logits."""
         model = classifier.Classifier(num_classes=2, backbone="rexnet-lite0")
         self.assertTrue(self._test_model_output(model, 2))
 

@@ -14,6 +14,7 @@ class DetectionDataGeneration(unittest.TestCase):
     create_detection_data.config = generate_config_test
 
     def test_create_train_data(self) -> None:
+        """Check that detector training data generation writes expected images."""
         num_imgs = generate_config_test.DET_TRAIN_IMAGES
         with tempfile.TemporaryDirectory() as d:
             tmp_dir = pathlib.Path(d)
@@ -21,6 +22,7 @@ class DetectionDataGeneration(unittest.TestCase):
             self.assertEqual(len(list((tmp_dir / "train").rglob("*.png"))), num_imgs)
 
     def test_create_val_data(self) -> None:
+        """Check that detector validation data generation writes expected images."""
         num_imgs = generate_config_test.DET_VAL_IMAGES
         with tempfile.TemporaryDirectory() as d:
             tmp_dir = pathlib.Path(d)
@@ -32,6 +34,7 @@ class ClassificationDataGeneration(unittest.TestCase):
     create_clf_data.config = generate_config_test
 
     def test_create_data(self) -> None:
+        """Check that classifier data generation writes expected images."""
         num_imgs = generate_config_test.CLF_IMAGES
         with tempfile.TemporaryDirectory() as d:
             tmp_dir = pathlib.Path(d)

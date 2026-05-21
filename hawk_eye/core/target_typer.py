@@ -20,26 +20,29 @@ class TargetTyper(torch.nn.Module):
         super().__init__()
         self.use_cuda = use_cuda
         self.half_precision = half_precision
+        self._validate_model_source(version, backbone)
+        self.model = self._load_model(version, backbone)
+        self._prepare_model()
 
+    def _validate_model_source(self, version: str, backbone: str) -> None:
         if backbone is None and version is None:
             raise ValueError("Must supply either model version or backbone to load")
 
-        # If a version is given, download from bintray
-        if version is not None:
-            # Download the model. This has the yaml containing the backbone.
-            model_path = pull_assets.download_model(
-                model_type="target_typer", version=version
-            )
-            # Load the config in the package to determine the backbone
-            config = yaml.safe_load((model_path.parent / "config.yaml").read_text())
-            backbone = config.get("model", {}).get("backbone", None)
-            # Construct the model, then load the state
-            self.model = self._load_backbone(backbone)
-            self.model.load_state_dict(torch.load(model_path, map_location="cpu"))
-        else:
-            # If no version supplied, just load the backbone
-            self.model = self._load_backbone(backbone)
+    def _load_model(self, version: str, backbone: str) -> torch.nn.Module:
+        if version is None:
+            return self._load_backbone(backbone)
+        return self._load_versioned_model(version)
 
+    def _load_versioned_model(self, version: str) -> torch.nn.Module:
+        model_path = pull_assets.download_model(
+            model_type="target_typer", version=version
+        )
+        config = yaml.safe_load((model_path.parent / "config.yaml").read_text())
+        model = self._load_backbone(config.get("model", {}).get("backbone", None))
+        model.load_state_dict(torch.load(model_path, map_location="cpu"))
+        return model
+
+    def _prepare_model(self) -> None:
         self.model.eval()
 
         if self.use_cuda and self.half_precision:

@@ -13,6 +13,7 @@ import PIL
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 from hawk_eye.data_generation import generate_config as config
+from hawk_eye.data_generation import image_ops
 from hawk_eye.core import pull_assets
 
 # Get constants from config
@@ -26,10 +27,33 @@ CLASSES = config.OD_CLASSES
 ALPHAS = config.ALPHAS
 
 _NUM_COMBINATIONS = 1000
+_FONT_MULTIPLIERS = {
+    "star": 0.14,
+    "triangle": 0.5,
+    "rectangle": 0.72,
+    "quarter-circle": 0.60,
+    "semicircle": 0.55,
+    "circle": 0.55,
+    "square": 0.60,
+    "trapezoid": 0.60,
+}
+_ALPHA_OFFSETS = {
+    "trapezoid": (0, -20),
+    "triangle": (-24, 12),
+    "quarter-circle": (14, -40),
+    "cross": (0, -25),
+    "square": (0, -10),
+}
 
 
 def generate_all_images(gen_type: str, num_gen: int, offset: int = 0) -> None:
-    """ Generate all combinations of shape, shape color, alpha, and alpha color. """
+    """Generate all combinations of shape, shape color, alpha, and alpha color.
+
+    Args:
+        gen_type: Dataset split or folder name to generate.
+        num_gen: Requested number of images.
+        offset: Starting image index offset.
+    """
     images_dir = config.DATA_DIR / gen_type
     config.DATA_DIR.mkdir(exist_ok=True, parents=True)
     images_dir.mkdir(exist_ok=True, parents=True)
@@ -117,7 +141,11 @@ def generate_all_images(gen_type: str, num_gen: int, offset: int = 0) -> None:
 
 
 def generate_single_example(data: zip) -> None:
-    """Creates a single full image"""
+    """Create one full image for the shape-combination dataset.
+
+    Args:
+        data: Packed generation parameters for one image.
+    """
     (number, background, crop_x, crop_y, shape_params, gen_type) = data
     data_path = config.DATA_DIR / gen_type
 
@@ -136,7 +164,16 @@ def generate_single_example(data: zip) -> None:
 def add_shapes(
     background: PIL.Image.Image, shape_img: PIL.Image.Image, shape_params,
 ) -> Tuple[List[Tuple[int, int, int, int, int]], PIL.Image.Image]:
-    """Paste shapes onto background and return bboxes"""
+    """Paste shapes onto a background image.
+
+    Args:
+        background: Background image to update.
+        shape_img: Shape image to paste.
+        shape_params: Metadata describing shape placement.
+
+    Returns:
+        Updated background image.
+    """
 
     for i, shape_param in enumerate(shape_params):
 
@@ -162,7 +199,11 @@ def add_shapes(
 
 
 def get_backgrounds():
-    """Get the background assets"""
+    """Get the background assets.
+
+    Returns:
+        Loaded and resized background images.
+    """
     # Can be a mix of .png and .jpg
     for backgrounds_folder in config.BACKGROUNDS_DIRS:
         filenames = list(backgrounds_folder.rglob("*.png"))
@@ -172,14 +213,29 @@ def get_backgrounds():
 
 
 def get_base_shapes(shape):
-    """Get the base shape images for a given shapes"""
+    """Get base shape images for a shape type.
+
+    Args:
+        shape: Shape name to load.
+
+    Returns:
+        Loaded base shape images.
+    """
     # For now just using the first one to prevent bad alpha placement
     base_path = config.BASE_SHAPES_DIR / shape / f"{shape}-01.png"
     return [Image.open(base_path)]
 
 
 def random_list(items, count):
-    """Get a list of items with length count"""
+    """Get a randomly sampled list.
+
+    Args:
+        items: Items to sample from.
+        count: Number of values to return.
+
+    Returns:
+        Random selections from ``items``.
+    """
     return [random.choice(items) for i in range(0, count)]
 
 
@@ -197,7 +253,25 @@ def create_shape(
     x,
     y,
 ) -> PIL.Image.Image:
-    """Create a shape given all the input parameters"""
+    """Create one rendered shape-combination image.
+
+    Args:
+        shape: Shape name.
+        base: Base image for the shape.
+        alpha: Alphanumeric character.
+        font_file: Font path.
+        size: Requested target size.
+        angle: Rotation angle.
+        target_color: Named target color.
+        target_rgb: RGB target color.
+        alpha_color: Named alphanumeric color.
+        alpha_rgb: RGB alphanumeric color.
+        x: Target x coordinate.
+        y: Target y coordinate.
+
+    Returns:
+        Rendered image and filename stem.
+    """
 
     image = get_base(base, target_rgb, size)
     image = strip_image(image)
@@ -214,37 +288,29 @@ def create_shape(
 
 
 def get_base(base, target_rgb, size):
-    """Copy and recolor the base shape"""
-    image = base.copy()
-    image = image.resize((256, 256), 1)
-    image = image.convert("RGBA")
+    """Copy and recolor the base shape.
 
-    r, g, b = target_rgb
+    Args:
+        base: Source base image.
+        target_rgb: RGB color to apply.
+        size: Requested target size.
 
-    for x in range(image.width):
-        for y in range(image.height):
-
-            pr, pg, pb, _ = image.getpixel((x, y))
-
-            if pr != 255 or pg != 255 or pb != 255:
-                image.putpixel((x, y), (r, g, b, 255))
-
-    return image
+    Returns:
+        Recolored base image.
+    """
+    return image_ops.recolor_nonwhite(base.copy().resize((256, 256), 1), target_rgb)
 
 
 def strip_image(image: PIL.Image.Image) -> PIL.Image.Image:
-    """Remove white and black edges"""
-    for x in range(image.width):
-        for y in range(image.height):
+    """Remove white and black edges.
 
-            r, g, b, _ = image.getpixel((x, y))
+    Args:
+        image: Image to strip.
 
-            if r == 255 and g == 255 and b == 255:
-                image.putpixel((x, y), (0, 0, 0, 0))
-
-    image = image.crop(image.getbbox())
-
-    return image
+    Returns:
+        Cropped transparent image.
+    """
+    return image_ops.transparent_white(image, threshold=255)
 
 
 def add_alphanumeric(
@@ -254,25 +320,19 @@ def add_alphanumeric(
     alpha_rgb: Tuple[int, int, int],
     font_file,
 ) -> PIL.Image.Image:
-    # Adjust alphanumeric size based on the shape it will be on
-    if shape == "star":
-        font_multiplier = 0.14
-    if shape == "triangle":
-        font_multiplier = 0.5
-    elif shape == "rectangle":
-        font_multiplier = 0.72
-    elif shape == "quarter-circle":
-        font_multiplier = 0.60
-    elif shape == "semicircle":
-        font_multiplier = 0.55
-    elif shape == "circle":
-        font_multiplier = 0.55
-    elif shape == "square":
-        font_multiplier = 0.60
-    elif shape == "trapezoid":
-        font_multiplier = 0.60
-    else:
-        font_multiplier = 0.55
+    """Draw an alphanumeric character on a shape.
+
+    Args:
+        image: Target shape image.
+        shape: Shape name.
+        alpha: Alphanumeric character.
+        alpha_rgb: RGB text color.
+        font_file: Font path.
+
+    Returns:
+        Image with alphanumeric text.
+    """
+    font_multiplier = _FONT_MULTIPLIERS.get(shape, 0.55)
 
     # Set font size, select font style from fonts file, set font color
     font_size = int(round(font_multiplier * image.height))
@@ -284,32 +344,12 @@ def add_alphanumeric(
     x = (image.width - w) / 2
     y = (image.height - h) / 2
 
-    # Adjust centering of alphanumerics on shapes
-    if shape == "pentagon":
-        pass
-    elif shape == "semicircle":
-        pass
-    elif shape == "rectangle":
-        pass
-    elif shape == "trapezoid":
-        y -= 20
-    elif shape == "star":
-        pass
-    elif shape == "triangle":
-        x -= 24
-        y += 12
-    elif shape == "quarter-circle":
-        y -= 40
-        x += 14
-    elif shape == "cross":
-        y -= 25
-    elif shape == "square":
-        y -= 10
-    elif shape == "circle":
+    dx, dy = _ALPHA_OFFSETS.get(shape, (0, 0))
+    x += dx
+    y += dy
+    if shape == "circle":
         x -= random.randint(-15, 15)
         y -= random.randint(-15, 15)
-    else:
-        pass
 
     draw.text((x, y), alpha, alpha_rgb, font=font)
 
@@ -317,6 +357,16 @@ def add_alphanumeric(
 
 
 def rotate_shape(image, shape, angle):
+    """Rotate a shape image.
+
+    Args:
+        image: Image to rotate.
+        shape: Shape name.
+        angle: Rotation angle in degrees.
+
+    Returns:
+        Rotated image.
+    """
     return image.rotate(angle, expand=1)
 
 

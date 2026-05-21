@@ -44,33 +44,34 @@ class Classifier(torch.nn.Module):
         self.num_classes = num_classes
         self.use_cuda = torch.cuda.is_available()
         self.half_precision = half_precision and self.use_cuda
+        self._validate_model_source(timestamp, backbone)
+        self.model = self._load_model(timestamp, backbone)
+        self._prepare_model()
 
+    def _validate_model_source(self, timestamp: str, backbone: str) -> None:
         if backbone is None and timestamp is None:
             raise ValueError("Must supply either model timestamp or backbone to load")
 
-        # If a version is given, download it.
-        if timestamp is not None:
+    def _load_model(self, timestamp: str, backbone: str) -> torch.nn.Module:
+        if timestamp is None:
+            return self.load_backbone(backbone)
+        return self._load_versioned_model(timestamp)
 
-            # For the distributed pip package, look inside `production_models`
-            production_models = pathlib.Path(__file__).parent / "production_models"
-            if production_models.is_dir():
-                model_path = production_models / timestamp
-            else:
-                # Download the model or find it locally.
-                model_path = asset_manager.download_model("classifier", timestamp)
+    def _load_versioned_model(self, timestamp: str) -> torch.nn.Module:
+        model_path = self._model_path(timestamp)
+        config = yaml.safe_load((model_path / "config.yaml").read_text())["model"]
+        model = self.load_backbone(config.get("backbone", None))
+        self.load_state_dict(torch.load(model_path / "classifier.pt", map_location="cpu"))
+        self.image_size = config["image_size"]
+        return model
 
-            config = yaml.safe_load((model_path / "config.yaml").read_text())["model"]
-            backbone = config.get("backbone", None)
-            # Construct the model, then load the state
-            self.model = self.load_backbone(backbone)
-            self.load_state_dict(
-                torch.load(model_path / "classifier.pt", map_location="cpu")
-            )
-            self.image_size = config["image_size"]
-        else:
-            # If no timestamp supplied, just load the backbone
-            self.model = self.load_backbone(backbone)
+    def _model_path(self, timestamp: str) -> pathlib.Path:
+        production_models = pathlib.Path(__file__).parent / "production_models"
+        if production_models.is_dir():
+            return production_models / timestamp
+        return asset_manager.download_model("classifier", timestamp)
 
+    def _prepare_model(self) -> None:
         self.model.eval()
 
         if self.use_cuda:
@@ -127,10 +128,12 @@ class Classifier(torch.nn.Module):
             The output tensor.
         """
 
-        if self.use_cuda and self.half_precision:
+        if self._should_half_inputs():
             x = x.half()
         if probability:
             return torch.nn.functional.softmax(self.model(x), dim=1)
-        else:
-            _, predicted = torch.max(self.model(x).data, 1)
-            return predicted
+        _, predicted = torch.max(self.model(x).data, 1)
+        return predicted
+
+    def _should_half_inputs(self) -> bool:
+        return self.use_cuda and self.half_precision

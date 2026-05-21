@@ -6,6 +6,12 @@ from typing import Optional
 from PIL import Image
 
 
+def _ranges_overlap(
+    first_start: int, first_end: int, second_start: int, second_end: int
+) -> bool:
+    return max(first_start, second_start) <= min(first_end, second_end)
+
+
 @enum.unique
 class Color(enum.Enum):
     """Contains colors for the AUVSI SUAS Interop Server.
@@ -130,19 +136,19 @@ class Target:
             >>> target1.overlaps(target2)
             False
         """
-        if (
-            self.x > other_target.x + other_target.width
-            or other_target.x > self.x + self.width
-        ):
-            return False
-
-        if (
-            self.y > other_target.y + other_target.height
-            or other_target.y > self.y + self.height
-        ):
-            return False
-
-        return True
+        x_overlap = _ranges_overlap(
+            self.x,
+            self.x + self.width,
+            other_target.x,
+            other_target.x + other_target.width,
+        )
+        y_overlap = _ranges_overlap(
+            self.y,
+            self.y + self.height,
+            other_target.y,
+            other_target.y + other_target.height,
+        )
+        return x_overlap and y_overlap
 
     def __repr__(self) -> str:
         return str(self)

@@ -25,6 +25,7 @@ class ProductionModels(unittest.TestCase):
         return self._bucket.blob(str(file_path)).exists()
 
     def test_classifier(self) -> None:
+        """Check that the production classifier metadata points to GCS."""
 
         self.assertTrue("classifier" in production_models.PROD_MODELS)
         self.assertTrue("sha256" in production_models._CLASSIFIER)
@@ -33,6 +34,7 @@ class ProductionModels(unittest.TestCase):
         )
 
     def test_detector(self) -> None:
+        """Check that the production detector metadata points to GCS."""
 
         self.assertTrue("detector" in production_models.PROD_MODELS)
         self.assertTrue("sha256" in production_models._DETECTOR)

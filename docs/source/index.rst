@@ -76,6 +76,12 @@ Structure
 
     tests
 
+.. toctree::
+    :caption: Maintenance
+
+    architecture
+    quality_gates
+
 
 Indices and tables
 ==================

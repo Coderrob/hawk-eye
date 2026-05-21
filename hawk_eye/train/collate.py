@@ -6,7 +6,7 @@ from typing import Tuple, List
 
 import torch
 
-from third_party.models import losses
+from third_party.detectron2 import losses
 
 
 class CollateVal:

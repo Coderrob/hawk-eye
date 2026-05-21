@@ -17,6 +17,13 @@ from data_generation import generate_config
 def create_database(
     model: torch.nn.Module, image_dir: pathlib.Path, save_path: pathlib.Path
 ) -> None:
+    """Create a serialized feature database from generated target images.
+
+    Args:
+        model: Feature extractor model.
+        image_dir: Directory containing generated target images.
+        save_path: Output protobuf path.
+    """
 
     database = target_type_database_pb2.ShapeCombinations()
     for img in image_dir.glob(f"*{generate_config.IMAGE_EXT}"):

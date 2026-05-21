@@ -124,6 +124,15 @@ def untar_and_move(filename: pathlib.Path, destination: pathlib.Path) -> None:
 
 
 def download_model(model_type: str, timestamp: str) -> pathlib.Path:
+    """Download or reuse a local production model archive.
+
+    Args:
+        model_type: Model family to download, either ``classifier`` or ``detector``.
+        timestamp: Timestamped model version to retrieve.
+
+    Returns:
+        Local directory containing the extracted model files.
+    """
     assert model_type in ["classifier", "detector"], f"Unsupported model {model_type}."
     filename = f"{model_type}/{timestamp}.tar.gz"
     destination = pathlib.Path(f"~/runs/uav-{model_type}").expanduser() / timestamp
@@ -135,6 +144,12 @@ def download_model(model_type: str, timestamp: str) -> pathlib.Path:
 
 
 def upload_model(model_type: str, path: pathlib.Path) -> None:
+    """Upload a packaged model archive.
+
+    Args:
+        model_type: Model family to upload, either ``classifier`` or ``detector``.
+        path: Local archive path to upload.
+    """
     upload_file(path, f"{model_type}/{path.name}")
 
 

@@ -1,11 +1,8 @@
 """ Datasets for loading data for our various training regimes. """
 
-from typing import Tuple
+from typing import List, Tuple
 import pathlib
 import json
-import random
-
-import albumentations
 import cv2
 import torch
 
@@ -40,7 +37,17 @@ class DetDataset(torch.utils.data.Dataset):
         image = cv2.imread(str(self.images[idx]))
         assert image is not None, f"Trouble reading {self.images[idx]}."
         labels = json.loads(self.images[idx].with_suffix(".json").read_text())
+        boxes = self._boxes(labels)
+        category_ids = [label["class_id"] for label in labels["bboxes"]]
 
+        return self.transform(
+            image=image,
+            bboxes=boxes,
+            category_ids=category_ids,
+            image_ids=labels["image_id"],
+        )
+
+    def _boxes(self, labels: dict) -> List[torch.Tensor]:
         boxes = [
             torch.Tensor(
                 [item["x1"], item["y1"], item["x1"] + item["w"], item["y1"] + item["h"]]
@@ -50,15 +57,7 @@ class DetDataset(torch.utils.data.Dataset):
 
         if boxes:
             boxes = torch.stack(boxes).clamp(0.0, 1.0)
-
-        category_ids = [label["class_id"] for label in labels["bboxes"]]
-
-        return self.transform(
-            image=image,
-            bboxes=boxes,
-            category_ids=category_ids,
-            image_ids=labels["image_id"],
-        )
+        return boxes
 
     def __len__(self) -> int:
         return self.len

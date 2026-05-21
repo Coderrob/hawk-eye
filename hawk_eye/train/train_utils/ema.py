@@ -16,7 +16,11 @@ class Ema:
 
     @torch.no_grad()
     def update(self, model: torch.nn.Module) -> None:
-        """ Pass in the base model in order to update the ema model's parameters. """
+        """Update EMA parameters from a base model.
+
+        Args:
+            model: Wrapped model whose parameters should update the EMA shadow.
+        """
 
         model = model.module
         # Loop over the state dictionary of the incoming model and update the ema model.

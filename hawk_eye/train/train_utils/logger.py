@@ -31,14 +31,35 @@ class Log:
         self.writer = tensorboard.SummaryWriter(log_dir=log_file.parent)
 
     def info(self, message: str) -> None:
+        """Log an informational message.
+
+        Args:
+            message: Message to write to the configured log handlers.
+        """
         logging.info(message)
 
     def warning(self, message: str) -> None:
+        """Log a warning message.
+
+        Args:
+            message: Message to write to the configured log handlers.
+        """
         logging.warning(message)
 
     def error(self, message: str) -> None:
+        """Log an error message.
+
+        Args:
+            message: Message to write to the configured log handlers.
+        """
         logging.error(message)
 
-    # logs metric to TensorBoard
     def metric(self, tag: str, value: float, epoch: int) -> None:
+        """Log a scalar metric to TensorBoard.
+
+        Args:
+            tag: Metric name.
+            value: Metric value.
+            epoch: Epoch associated with the metric value.
+        """
         self.writer.add_scalar(tag, value, epoch)

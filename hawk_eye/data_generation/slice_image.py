@@ -11,6 +11,7 @@ import numpy as np
 from PIL import Image
 import tqdm
 
+from hawk_eye import image_utils
 from hawk_eye.data_generation import generate_config as config
 
 
@@ -31,21 +32,9 @@ def slice_image(
         image = Image.open(filename)
         width, height = image.size
 
-        # Cropping logic repurposed from hawk_eye.inference.find_targets.tile_image()
-        for x in range(0, width - overlap, tile_size[0] - overlap):
-
-            # Shift back to extract tiles on the image
-            if x + tile_size[0] >= width and x != 0:
-                x = width - tile_size[0]
-
-            for y in range(0, height - overlap, tile_size[1] - overlap):
-
-                if y + tile_size[1] >= height and y != 0:
-                    y = height - tile_size[1]
-
-                tile = image.crop((x, y, x + tile_size[0], y + tile_size[1]))
-
-                tile.save(save_dir / f"{filename.stem}-{x}-{y}{filename.suffix}")
+        for x, y in image_utils.tile_origins(width, height, tile_size, overlap):
+            tile = image.crop((x, y, x + tile_size[0], y + tile_size[1]))
+            tile.save(save_dir / f"{filename.stem}-{x}-{y}{filename.suffix}")
 
     (save_dir / "labels.txt").write_text("\n".join(config.SHAPE_TYPES))
 

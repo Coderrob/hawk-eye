@@ -106,7 +106,9 @@ def train(
         log.info(f"Model: \n {clf_model}")
 
     optimizer = utils.create_optimizer(train_cfg["optimizer"], clf_model)
-    use_mixed_precision = train_cfg.get("mixed-precision", True)
+    use_mixed_precision = train_cfg.get(
+        "mixed_precision", train_cfg.get("mixed-precision", True)
+    )
     if use_mixed_precision:
         if is_main:
             log.info("Mixed-precision (AMP) enabled.")

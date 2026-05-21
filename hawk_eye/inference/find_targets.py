@@ -3,9 +3,8 @@
 
 import argparse
 import pathlib
-import time
 import json
-from typing import List, Tuple, Generator
+from typing import List, Tuple
 
 from PIL import Image
 from PIL import ImageDraw
@@ -15,6 +14,7 @@ import torch
 from hawk_eye.core import classifier
 from hawk_eye.core import detector
 from hawk_eye.data_generation import generate_config as config
+from hawk_eye import image_utils
 from hawk_eye.inference import inference_types
 from hawk_eye.inference import production_models
 from third_party.detectron2 import postprocess
@@ -56,6 +56,13 @@ def normalize(
     return img
 
 
+def _crop_tile(
+    image: Image.Image, x: int, y: int, tile_size: Tuple[int, int]
+) -> torch.Tensor:
+    cropped = image.crop((x, y, x + tile_size[0], y + tile_size[1]))
+    return torch.Tensor(normalize(np.array(cropped)))
+
+
 def tile_image(
     image: Image.Image, tile_size: Tuple[int, int], overlap: int
 ) -> Tuple[torch.Tensor, List[Tuple[int, int]]]:
@@ -83,24 +90,9 @@ def tile_image(
     tiles, coords = [], []
     width, height = image.size
 
-    x_step = width if width == tile_size[0] else tile_size[0] - overlap
-    y_step = height if height == tile_size[1] else tile_size[1] - overlap
-
-    for x in range(0, width - overlap, x_step):
-        # Shift back to extract tiles on the image
-        if x + tile_size[0] >= width and x != 0:
-            x = width - tile_size[0]
-
-        for y in range(0, height - overlap, y_step):
-            if y + tile_size[1] >= height and y != 0:
-                y = height - tile_size[1]
-
-            tile = normalize(
-                np.array(image.crop((x, y, x + tile_size[0], y + tile_size[1])))
-            )
-
-            tiles.append(torch.Tensor(tile))
-            coords.append((x, y))
+    for x, y in image_utils.tile_origins(width, height, tile_size, overlap):
+        tiles.append(_crop_tile(image, x, y, tile_size))
+        coords.append((x, y))
 
     # Transpose the images from BHWC -> BCHW
     tiles = torch.stack(tiles).permute(0, 3, 1, 2)
@@ -127,6 +119,12 @@ def create_batches(
 
     for idx in range(0, image_tensor.shape[0], batch_size):
         yield image_tensor[idx : idx + batch_size], coords[idx : idx + batch_size]
+
+
+def _to_cuda_half(tiles: torch.Tensor) -> torch.Tensor:
+    if torch.cuda.is_available():
+        return tiles.cuda().half()
+    return tiles
 
 
 def load_models(
@@ -186,27 +184,75 @@ def find_all_targets(
     clf_model, det_model = load_models(clf_timestamp, det_timestamp)
 
     for image_path in images:
+        _process_image(
+            image_path, clf_model, det_model, visualization_dir, save_json_data
+        )
 
-        image = Image.open(image_path)
-        assert image is not None, f"Could not read {image_path}."
 
-        targets, target_tiles = find_targets(image, clf_model, det_model)
+def _process_image(
+    image_path: pathlib.Path,
+    clf_model: torch.nn.Module,
+    det_model: torch.nn.Module,
+    visualization_dir: pathlib.Path,
+    save_json_data: bool,
+) -> None:
+    image = Image.open(image_path)
+    assert image is not None, f"Could not read {image_path}."
 
-        if visualization_dir is not None:
-            visualize_image(
-                image_path.name,
-                np.array(image),
-                visualization_dir,
-                targets,
-                target_tiles,
-            )
+    targets, target_tiles = find_targets(image, clf_model, det_model)
+    _save_outputs(
+        image_path, image, visualization_dir, targets, target_tiles, save_json_data
+    )
 
-        if save_json_data:
-            save_target_meta(
-                (visualization_dir / image_path.name).with_suffix(".json"),
-                image_path.name,
-                targets,
-            )
+
+def _save_outputs(
+    image_path: pathlib.Path,
+    image: Image.Image,
+    visualization_dir: pathlib.Path,
+    targets: List[inference_types.Target],
+    target_tiles: List[Tuple[int, int]],
+    save_json_data: bool,
+) -> None:
+    if visualization_dir is not None:
+        visualize_image(
+            image_path.name,
+            np.array(image),
+            visualization_dir,
+            targets,
+            target_tiles,
+        )
+    if save_json_data:
+        save_target_meta(
+            (visualization_dir / image_path.name).with_suffix(".json"),
+            image_path.name,
+            targets,
+        )
+
+
+def _classify_tiles(
+    clf_model: torch.nn.Module, tiles_batch: torch.Tensor, clf_confidence: float
+) -> torch.Tensor:
+    tiles = torch.nn.functional.interpolate(tiles_batch, config.PRECLF_SIZE)
+    return clf_model.classify(tiles, probability=True)[:, 1] >= clf_confidence
+
+
+def _positive_coords(
+    coords: List[Tuple[int, int]], predictions: torch.Tensor
+) -> List[Tuple[int, int]]:
+    pred_values = predictions.detach().cpu().tolist()
+    return [coords[idx] for idx, value in enumerate(pred_values) if value]
+
+
+def _detect_tiles(
+    det_model: torch.nn.Module,
+    tiles_batch: torch.Tensor,
+    coords: List[Tuple[int, int]],
+) -> List[Tuple[Tuple[int, int], List[postprocess.BoundingBox]]]:
+    detections = []
+    for det_tiles, det_coords in create_batches(tiles_batch, coords, 15):
+        det_tiles = torch.nn.functional.interpolate(det_tiles, config.DETECTOR_SIZE)
+        detections.extend(zip(det_coords, det_model(det_tiles)))
+    return detections
 
 
 @torch.no_grad()
@@ -215,45 +261,28 @@ def find_targets(
     clf_model: torch.nn.Module,
     det_model: torch.nn.Module,
     clf_confidence: float = 0.9,
-) -> None:
+) -> Tuple[List[inference_types.Target], List[Tuple[int, int]]]:
     """ Tile up image, classify them, then perform object detection where it's needed.
 
     Args:
         image: The input image to inference.
         clf_model: The loaded classification model.
         det_model: The loaded detection model.
+
+    Returns:
+        Detected targets in original image coordinates and tile coordinates that
+        passed the classifier.
     """
 
     image_tensor, coords = tile_image(image, config.CROP_SIZE, config.CROP_OVERLAP)
-
-    # Keep track of the tiles that were classified as having targets for
-    # visualization.
     target_tiles, retval = [], []
 
-    # Get the image slices.
     for tiles_batch, coords in create_batches(image_tensor, coords, 200):
-
-        if torch.cuda.is_available():
-            tiles_batch = tiles_batch.cuda().half()
-
-        # Resize the slices for classification.
-        tiles = torch.nn.functional.interpolate(tiles_batch, config.PRECLF_SIZE)
-
-        # Call the pre-clf to find the target tiles.
-        # TODO(alex): Pass in the classification confidence from cmdl.
-        preds = clf_model.classify(tiles, probability=True)[:, 1] >= clf_confidence
-
-        target_tiles += [coords[idx] for idx, val in enumerate(preds) if val]
-        if preds.numel():
-            for det_tiles, det_coords in create_batches(tiles_batch[preds], coords, 15):
-                # Pass these target-containing tiles to the detector
-                det_tiles = torch.nn.functional.interpolate(
-                    det_tiles, config.DETECTOR_SIZE
-                )
-                boxes = det_model(det_tiles)
-                retval.extend(zip(target_tiles, boxes))
-        else:
-            retval.extend(zip(coords, []))
+        tiles_batch = _to_cuda_half(tiles_batch)
+        preds = _classify_tiles(clf_model, tiles_batch, clf_confidence)
+        positive_coords = _positive_coords(coords, preds)
+        target_tiles.extend(positive_coords)
+        retval.extend(_detect_tiles(det_model, tiles_batch[preds], positive_coords))
 
     return globalize_boxes(retval, config.CROP_SIZE[0]), target_tiles
 
@@ -343,7 +372,13 @@ def save_target_meta(
     filename_image: str,
     targets: List[inference_types.Target],
 ) -> None:
-    """ Save target metadata to a file. """
+    """Save target metadata to a file.
+
+    Args:
+        filename_meta: Output JSON metadata path.
+        filename_image: Original image filename associated with the targets.
+        targets: Targets to serialize.
+    """
     meta = {}
     for idx, target in enumerate(targets):
         meta[f"target-{idx}"] = {

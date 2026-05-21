@@ -21,7 +21,14 @@ from PIL import ImageFont
 from PIL import ImageOps
 
 from hawk_eye.data_generation import generate_config as config
+from hawk_eye.data_generation import image_ops
 from hawk_eye.core import asset_manager
+
+
+@dataclasses.dataclass
+class alpha_params:
+    font_multiplier: Tuple[int, int]
+
 
 # Get constants from config
 MAX_SHAPES = int(config.MAX_PER_SHAPE)
@@ -31,6 +38,26 @@ ALPHA_COLORS = config.ALPHA_COLORS
 COLORS = config.COLORS
 CLASSES = config.OD_CLASSES
 ALPHAS = config.ALPHAS
+_ALPHA_INFO = {
+    "circle": alpha_params((0.35, 0.65)),
+    "cross": alpha_params((0.35, 0.65)),
+    "pentagon": alpha_params((0.35, 0.65)),
+    "quarter-circle": alpha_params((0.35, 0.65)),
+    "rectangle": alpha_params((0.35, 0.7)),
+    "semicircle": alpha_params((0.35, 0.75)),
+    "square": alpha_params((0.30, 0.8)),
+    "star": alpha_params((0.25, 0.55)),
+    "trapezoid": alpha_params((0.25, 0.75)),
+    "triangle": alpha_params((0.25, 0.6)),
+}
+_ALPHA_OFFSETS = {
+    "trapezoid": (0, -20),
+    "triangle": (-24, 12),
+    "quarter-circle": (14, -40),
+    "cross": (0, -25),
+    "square": (0, -10),
+    "circle": (0, -50),
+}
 
 
 def generate_all_images(gen_type: pathlib.Path, num_gen: int, offset: int = 0) -> None:
@@ -144,7 +171,11 @@ def generate_all_images(gen_type: pathlib.Path, num_gen: int, offset: int = 0) -
 
 
 def generate_single_example(data) -> None:
-    """Creates a single full image"""
+    """Create one synthetic detector image and label file.
+
+    Args:
+        data: Packed generation parameters for a single image.
+    """
     (
         number,
         background_path,
@@ -203,7 +234,17 @@ def add_shapes(
     shape_params,
     blur_radius: int,
 ) -> Tuple[List[Tuple[int, int, int, int, int]], PIL.Image.Image]:
-    """Paste shapes onto background and return bboxes"""
+    """Paste shapes onto a background image.
+
+    Args:
+        background: Background crop to receive shapes.
+        shape_imgs: Rendered shape images to paste.
+        shape_params: Shape metadata paired with each rendered shape.
+        blur_radius: Blur radius used by the generation pipeline.
+
+    Returns:
+        Bounding boxes and updated background image.
+    """
     shape_bboxes: List[Tuple[int, int, int, int, int]] = []
 
     for i, shape_param in enumerate(shape_params):
@@ -240,7 +281,11 @@ def add_shapes(
 
 
 def get_backgrounds() -> List[pathlib.Path]:
-    """ Get a list of all the background images. """
+    """Get a list of all the background images.
+
+    Returns:
+        Paths to all configured background images.
+    """
     # Cover all the necessary extensions
     exts, filenames = ["png", "jpg", "jpeg"], []
     for backgrounds_folder in config.BACKGROUNDS_DIRS:
@@ -254,7 +299,14 @@ def get_backgrounds() -> List[pathlib.Path]:
 
 
 def get_base_shapes(shape):
-    """Get the base shape images for a given shapes"""
+    """Get base shape images for a shape type.
+
+    Args:
+        shape: Shape name to load.
+
+    Returns:
+        Loaded base shape images.
+    """
     # For now just using the first one to prevent bad alpha placement
     return [
         Image.open(base_path)
@@ -263,7 +315,15 @@ def get_base_shapes(shape):
 
 
 def random_list(items, count):
-    """Get a list of items with length count"""
+    """Get a randomly sampled list.
+
+    Args:
+        items: Items to sample from.
+        count: Number of values to return.
+
+    Returns:
+        Random selections from ``items``.
+    """
     return [random.choice(items) for i in range(0, count)]
 
 
@@ -281,7 +341,25 @@ def create_shape(
     x,
     y,
 ) -> PIL.Image.Image:
-    """Create a shape given all the input parameters"""
+    """Create one rendered synthetic target shape.
+
+    Args:
+        shape: Shape name.
+        base: Base image for the shape.
+        alpha: Alphanumeric character to draw.
+        font_file: Font path for the alphanumeric.
+        size: Target size in pixels.
+        angle: Rotation angle.
+        target_color: Named target color.
+        target_rgb: RGB target color.
+        alpha_color: Named alphanumeric color.
+        alpha_rgb: RGB alphanumeric color.
+        x: Target x coordinate.
+        y: Target y coordinate.
+
+    Returns:
+        Rendered RGBA target image.
+    """
 
     image = get_base(base, target_rgb, size)
     image = strip_image(image)
@@ -299,43 +377,29 @@ def create_shape(
 
 
 def get_base(base, target_rgb, size):
-    """Copy and recolor the base shape"""
-    image = base.copy()
-    image = image.resize((256, 256), 1)
-    image = image.convert("RGBA")
+    """Copy and recolor a base shape.
 
-    r, g, b = target_rgb
+    Args:
+        base: Source base shape image.
+        target_rgb: RGB color to apply to the shape.
+        size: Requested target size.
 
-    for x in range(image.width):
-        for y in range(image.height):
-
-            pr, pg, pb, _ = image.getpixel((x, y))
-
-            if pr != 255 or pg != 255 or pb != 255:
-                image.putpixel((x, y), (r, g, b, 255))
-
-    return image
+    Returns:
+        Recolored base image.
+    """
+    return image_ops.recolor_nonwhite(base.copy().resize((256, 256), 1), target_rgb)
 
 
 def strip_image(image: PIL.Image.Image) -> PIL.Image.Image:
-    """Remove white and black edges"""
-    for x in range(image.width):
-        for y in range(image.height):
+    """Remove white and black edges.
 
-            r, g, b, _ = image.getpixel((x, y))
+    Args:
+        image: Image to strip.
 
-            if r > 247 and g > 247 and b > 247:
-                image.putpixel((x, y), (0, 0, 0, 0))
-
-    image = image.crop(image.getbbox())
-
-    return image
-
-
-@dataclasses.dataclass
-class alpha_params:
-    font_multiplier: Tuple[int, int]
-
+    Returns:
+        Cropped transparent image.
+    """
+    return image_ops.transparent_white(image, threshold=247)
 
 def add_alphanumeric(
     image: PIL.Image.Image,
@@ -344,20 +408,20 @@ def add_alphanumeric(
     alpha_rgb: Tuple[int, int, int],
     font_file,
 ) -> PIL.Image.Image:
+    """Draw an alphanumeric character on a target shape.
 
-    alpha_info = {
-        "circle": alpha_params((0.35, 0.65)),
-        "cross": alpha_params((0.35, 0.65)),
-        "pentagon": alpha_params((0.35, 0.65)),
-        "quarter-circle": alpha_params((0.35, 0.65)),
-        "rectangle": alpha_params((0.35, 0.7)),
-        "semicircle": alpha_params((0.35, 0.75)),
-        "square": alpha_params((0.30, 0.8)),
-        "star": alpha_params((0.25, 0.55)),
-        "trapezoid": alpha_params((0.25, 0.75)),
-        "triangle": alpha_params((0.25, 0.6)),
-    }
-    font_multiplier = random.uniform(*alpha_info[shape].font_multiplier)
+    Args:
+        image: Target shape image.
+        shape: Shape name.
+        alpha: Alphanumeric character.
+        alpha_rgb: RGB text color.
+        font_file: Font path.
+
+    Returns:
+        Image with alphanumeric text.
+    """
+
+    font_multiplier = random.uniform(*_ALPHA_INFO[shape].font_multiplier)
 
     # Set font size, select font style from fonts file, set font color
     font_size = int(round(font_multiplier * image.height))
@@ -369,31 +433,9 @@ def add_alphanumeric(
     x = (image.width - w) / 2
     y = (image.height - h) / 2
 
-    # Adjust centering of alphanumerics on shapes
-    if shape == "pentagon":
-        pass
-    elif shape == "semicircle":
-        pass
-    elif shape == "rectangle":
-        pass
-    elif shape == "trapezoid":
-        y -= 20
-    elif shape == "star":
-        pass
-    elif shape == "triangle":
-        x -= 24
-        y += 12
-    elif shape == "quarter-circle":
-        y -= 40
-        x += 14
-    elif shape == "cross":
-        y -= 25
-    elif shape == "square":
-        y -= 10
-    elif shape == "circle":
-        y -= 50
-    else:
-        pass
+    dx, dy = _ALPHA_OFFSETS.get(shape, (0, 0))
+    x += dx
+    y += dy
 
     draw.text((x, y), alpha, alpha_rgb, font=font)
 
@@ -401,54 +443,89 @@ def add_alphanumeric(
 
 
 def rotate_shape(image, angle):
+    """Rotate a target shape image.
+
+    Args:
+        image: Image to rotate.
+        angle: Rotation angle in degrees.
+
+    Returns:
+        Rotated image.
+    """
     return image.rotate(angle, expand=1)
 
 
 def create_coco_metadata(data_dir: pathlib.Path, out_path: pathlib.Path) -> None:
-    images = []
-    annotations = []
-    categories = []
-    for idx, name in enumerate(CLASSES):
-        categories.append({"supercategory": "none", "name": name, "id": idx})
+    """Create COCO metadata from generated per-image labels.
 
+    Args:
+        data_dir: Directory containing generated images and JSON labels.
+        out_path: Output COCO metadata path.
+    """
+    images, annotations = [], []
     jsons = sorted(list(data_dir.glob("*.json")))
     for label_file in jsons:
-        labels = json.loads(label_file.read_text())
-        images.append(
-            {
-                "file_name": label_file.with_suffix(f"{config.IMAGE_EXT}").name,
-                "width": config.DETECTOR_SIZE[0],
-                "height": config.DETECTOR_SIZE[1],
-                "id": labels["image_id"],
-            }
-        )
-        # Now record the labels
-        for label in labels["bboxes"]:
-            x1, y1 = (
-                int(label["x1"] * config.DETECTOR_SIZE[0]),
-                int(label["y1"] * config.DETECTOR_SIZE[1]),
-            )
-            w, h = (
-                int(label["w"] * config.DETECTOR_SIZE[0]),
-                int(label["h"] * config.DETECTOR_SIZE[1]),
-            )
-
-            annotations.append(
-                {
-                    "id": len(annotations),
-                    "bbox": [x1, y1, w, h],
-                    "category_id": label["class_id"],
-                    "iscrowd": 0,
-                    "area": w * h,
-                    "image_id": labels["image_id"],
-                    "segmentation": [[x1, y1, x1, y1 + h, x1 + w, y1 + h, x1 + w, y1]],
-                }
-            )
+        labels = _load_labels(label_file)
+        images.append(_coco_image(label_file, labels))
+        annotations.extend(_coco_annotations(labels, len(annotations)))
     out_path.write_text(
         json.dumps(
-            {"categories": categories, "images": images, "annotations": annotations},
+            {
+                "categories": _coco_categories(),
+                "images": images,
+                "annotations": annotations,
+            },
             indent=2,
         )
+    )
+
+
+def _load_labels(label_file: pathlib.Path) -> dict:
+    return json.loads(label_file.read_text())
+
+
+def _coco_categories() -> List[dict]:
+    return [
+        {"supercategory": "none", "name": name, "id": idx}
+        for idx, name in enumerate(CLASSES)
+    ]
+
+
+def _coco_image(label_file: pathlib.Path, labels: dict) -> dict:
+    return {
+        "file_name": label_file.with_suffix(f"{config.IMAGE_EXT}").name,
+        "width": config.DETECTOR_SIZE[0],
+        "height": config.DETECTOR_SIZE[1],
+        "id": labels["image_id"],
+    }
+
+
+def _coco_annotations(labels: dict, start_id: int) -> List[dict]:
+    annotations = []
+    for idx, label in enumerate(labels["bboxes"]):
+        annotations.append(_coco_annotation(label, labels["image_id"], start_id + idx))
+    return annotations
+
+
+def _coco_annotation(label: dict, image_id: int, annotation_id: int) -> dict:
+    x1, y1, w, h = _coco_box(label)
+    return {
+        "id": annotation_id,
+        "bbox": [x1, y1, w, h],
+        "category_id": label["class_id"],
+        "iscrowd": 0,
+        "area": w * h,
+        "image_id": image_id,
+        "segmentation": [[x1, y1, x1, y1 + h, x1 + w, y1 + h, x1 + w, y1]],
+    }
+
+
+def _coco_box(label: dict) -> Tuple[int, int, int, int]:
+    return (
+        int(label["x1"] * config.DETECTOR_SIZE[0]),
+        int(label["y1"] * config.DETECTOR_SIZE[1]),
+        int(label["w"] * config.DETECTOR_SIZE[0]),
+        int(label["h"] * config.DETECTOR_SIZE[1]),
     )
 
 

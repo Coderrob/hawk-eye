@@ -17,6 +17,7 @@ asset_manager.BUCKET = "uav_austin_test"
 
 class FileUpload(unittest.TestCase):
     def test_file_upload(self) -> None:
+        """Check that an existing local file can be uploaded."""
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = pathlib.Path(tmp_dir)
             tmp_file = tmp_dir / f"{datetime.datetime.now().isoformat()}.txt"
@@ -28,6 +29,7 @@ class FileUpload(unittest.TestCase):
             self.assertTrue(blob.exists())
 
     def test_no_file(self) -> None:
+        """Check that uploading a missing file raises FileNotFoundError."""
         with self.assertRaises(FileNotFoundError):
             asset_manager.upload_file(
                 pathlib.Path(tempfile.NamedTemporaryFile().name), ""
@@ -36,6 +38,7 @@ class FileUpload(unittest.TestCase):
 
 class FileDownload(unittest.TestCase):
     def test_download_file(self):
+        """Check that an uploaded tarball can be downloaded and extracted."""
 
         # Create and upload the file
         with tempfile.TemporaryDirectory() as d:
@@ -57,6 +60,7 @@ class FileDownload(unittest.TestCase):
         self.assertTrue((tmp_dir / "dir").is_dir())
 
     def test_no_remote_file(self) -> None:
+        """Check that downloading a missing remote file raises FileNotFoundError."""
         with self.assertRaises(FileNotFoundError):
             with tempfile.TemporaryDirectory() as d:
                 asset_manager.download_file(

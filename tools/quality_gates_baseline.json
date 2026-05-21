@@ -1,0 +1,77 @@
+{
+  "description": "Existing quality gate violations. New findings fail CI; remove entries as code is refactored.",
+  "findings": [
+    {
+      "key": "complexity:hawk_eye/data_generation/create_detection_data.py:generate_all_images",
+      "line": 63,
+      "message": "cyclomatic complexity 10 exceeds max 3",
+      "name": "generate_all_images",
+      "path": "hawk_eye/data_generation/create_detection_data.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/data_generation/create_detection_data.py:generate_single_example",
+      "line": 173,
+      "message": "cyclomatic complexity 6 exceeds max 3",
+      "name": "generate_single_example",
+      "path": "hawk_eye/data_generation/create_detection_data.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/data_generation/create_shape_combinations.py:generate_all_images",
+      "line": 49,
+      "message": "cyclomatic complexity 10 exceeds max 3",
+      "name": "generate_all_images",
+      "path": "hawk_eye/data_generation/create_shape_combinations.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/train/classification/train.py:train",
+      "line": 32,
+      "message": "cyclomatic complexity 24 exceeds max 3",
+      "name": "train",
+      "path": "hawk_eye/train/classification/train.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/train/classification/train.py:create_data_loader",
+      "line": 264,
+      "message": "cyclomatic complexity 5 exceeds max 3",
+      "name": "create_data_loader",
+      "path": "hawk_eye/train/classification/train.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/train/detection/train.py:train",
+      "line": 74,
+      "message": "cyclomatic complexity 29 exceeds max 3",
+      "name": "train",
+      "path": "hawk_eye/train/detection/train.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/train/detection/train.py:eval",
+      "line": 299,
+      "message": "cyclomatic complexity 8 exceeds max 3",
+      "name": "eval",
+      "path": "hawk_eye/train/detection/train.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "complexity:hawk_eye/train/detection/train.py:create_data_loader",
+      "line": 351,
+      "message": "cyclomatic complexity 4 exceeds max 3",
+      "name": "create_data_loader",
+      "path": "hawk_eye/train/detection/train.py",
+      "rule": "complexity"
+    },
+    {
+      "key": "duplication:.:repository",
+      "line": 0,
+      "message": "duplicated token ratio 8.54% exceeds max 1.00%",
+      "name": "repository",
+      "path": ".",
+      "rule": "duplication"
+    }
+  ]
+}

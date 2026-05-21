@@ -1,0 +1,13 @@
+{
+  "include": [
+    "hawk_eye/**/*.py"
+  ],
+  "exclude": [
+    "third_party/**",
+    "**/__pycache__/**"
+  ],
+  "max_cyclomatic_complexity": 3,
+  "max_duplication_percent": 1.0,
+  "duplication_token_window": 80,
+  "require_private_function_docs": false
+}

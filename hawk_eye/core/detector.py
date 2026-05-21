@@ -34,32 +34,48 @@ class Detector(torch.nn.Module):
         self.half_precision = half_precision
         self.num_detections_per_image = num_detections_per_image
         self.confidence = confidence
+        model_params, model_path = self._resolve_model_params(model_params, timestamp)
 
+        self._build_model_components()
+        self._prepare_cuda()
+        self.image_size = model_params.get("image_size", 512)
+        self.postprocess = self._create_postprocessor()
+        self._load_weights(model_path)
+        self.eval()
+
+    def _resolve_model_params(
+        self, model_params: dict, timestamp: str
+    ) -> tuple:
+        self._validate_model_source(model_params, timestamp)
+        if timestamp is None:
+            self._load_params(model_params)
+            return model_params, None
+        return self._load_timestamped_params(timestamp)
+
+    def _validate_model_source(self, model_params: dict, timestamp: str) -> None:
         if model_params is None and timestamp is None:
             raise ValueError("Must supply either model timestamp or backbone to load")
 
-        # If a timestamp is given, download it.
-        if timestamp is not None:
+    def _load_timestamped_params(self, timestamp: str) -> tuple:
+        model_path = self._model_path(timestamp)
+        config = yaml.safe_load((model_path / "config.yaml").read_text())
+        self._load_params(config["model"])
+        return config["model"], model_path
 
-            # For the distributed pip package, look inside `production_models`
-            production_models = pathlib.Path(__file__).parent / "production_models"
-            if production_models.is_dir():
-                model_path = production_models / timestamp
-            else:
-                # Download the model. This has the yaml containing the backbone.
-                model_path = asset_manager.download_model("detector", timestamp)
+    def _model_path(self, timestamp: str) -> pathlib.Path:
+        production_models = pathlib.Path(__file__).parent / "production_models"
+        if production_models.is_dir():
+            return production_models / timestamp
+        return asset_manager.download_model("detector", timestamp)
 
-            config = yaml.safe_load((model_path / "config.yaml").read_text())
-            model_params = config["model"]
-            self._load_params(config["model"])
-        else:
-            self._load_params(model_params)
-
+    def _build_model_components(self) -> None:
         self.backbone = self._load_backbone(self.backbone)
         self.backbone.delete_classification_head()
-
         self.fpn = self._load_fpn(self.fpn_type, self.backbone.get_pyramid_channels())
+        self._create_anchors()
+        self._create_retinanet_head()
 
+    def _create_anchors(self) -> None:
         assert len(self.anchor_sizes) == len(self.fpn_levels)
         self.anchors = anchors.AnchorGenerator(
             img_height=self.img_height,
@@ -70,7 +86,7 @@ class Detector(torch.nn.Module):
             anchor_scales=self.anchor_scales,
         )
 
-        # Create the retinanet head.
+    def _create_retinanet_head(self) -> None:
         self.retinanet_head = retinanet_head.RetinaNetHead(
             self.num_classes,
             in_channels=self.fpn_channels,
@@ -79,6 +95,7 @@ class Detector(torch.nn.Module):
             use_dw=self.retinanet_head_dw,
         )
 
+    def _prepare_cuda(self) -> None:
         if torch.cuda.is_available():
             self.anchors.all_anchors = self.anchors.all_anchors.cuda()
             self.anchors.anchors_over_all_feature_maps = [
@@ -86,24 +103,22 @@ class Detector(torch.nn.Module):
             ]
             self.cuda()
 
-        self.image_size = model_params.get("image_size", 512)
-        self.postprocess = postprocess.PostProcessor(
+    def _create_postprocessor(self) -> postprocess.PostProcessor:
+        return postprocess.PostProcessor(
             num_classes=self.num_classes,
             image_size=self.image_size,
             all_anchors=self.anchors.all_anchors,
             regressor=regression.Regressor(),
-            max_detections_per_image=num_detections_per_image,
-            score_threshold=confidence,
+            max_detections_per_image=self.num_detections_per_image,
+            score_threshold=self.confidence,
             nms_threshold=0.2,
         )
 
-        # After all the components are initialized, load the weights.
-        if timestamp is not None:
+    def _load_weights(self, model_path: pathlib.Path) -> None:
+        if model_path is not None:
             self.load_state_dict(
                 torch.load(model_path / "min-loss.pt", map_location="cpu")
             )
-
-        self.eval()
 
     def _load_params(self, config: dict) -> None:
         """Function to parse the model definition params for later building."""

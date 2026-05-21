@@ -35,65 +35,72 @@ def parse_labels(
     """
     save_dir = save_dir / "images"
     save_dir.mkdir(exist_ok=True, parents=True)
+    images = _read_image_names(csv_path)
+    _write_tile_labels(image_dir, save_dir, csv_path, images)
+    _create_splits(image_dir, save_dir, images, val_percent)
+    _upload_dataset(save_dir, upload)
 
-    # First get a list of all the images
+
+def _read_image_names(csv_path: pathlib.Path) -> list:
     with open(csv_path, newline="") as csvfile:
         spamreader = csv.reader(csvfile, delimiter=" ", quotechar="|")
         images = []
         for row in spamreader:
             vals = row[0].split(",")
             images.append(vals[-3])
-        images = sorted(images)
+    return sorted(images)
 
+
+def _write_tile_labels(
+    image_dir: pathlib.Path,
+    save_dir: pathlib.Path,
+    csv_path: pathlib.Path,
+    images: list,
+) -> None:
     with open(csv_path, newline="") as csvfile:
         spamreader = csv.reader(csvfile, delimiter=" ", quotechar="|")
 
         for row in spamreader:
-            vals = row[0].split(",")
-            original_tile_path = image_dir / vals[-3]
-            tile_save_path = save_dir / vals[-3]
-            tile_json = tile_save_path.with_suffix(".json")
-            class_name = vals[0]
-            x1, y1, w, h = vals[1:5]
-            img_w, img_h = vals[-2], vals[-1]
-            label = {
-                "bboxes": [
-                    {
-                        "class_id": generate_config.SHAPE_TYPES.index(class_name),
-                        "x1": float(x1) / float(img_w),
-                        "y1": float(y1) / float(img_h),
-                        "w": float(w) / float(img_w),
-                        "h": float(h) / float(img_h),
-                    },
-                ],
-                "image_id": images.index(original_tile_path.name),
-            }
-            tile_json.write_text(json.dumps(label, indent=2))
+            label, original_tile_path, tile_save_path = _tile_label(
+                row[0].split(","), image_dir, save_dir, images
+            )
+            tile_save_path.with_suffix(".json").write_text(json.dumps(label, indent=2))
             shutil.copy2(original_tile_path, tile_save_path)
 
-    # Split the data into the proper split.
+
+def _tile_label(
+    vals: list, image_dir: pathlib.Path, save_dir: pathlib.Path, images: list
+) -> tuple:
+    original_tile_path = image_dir / vals[-3]
+    class_name = vals[0]
+    x1, y1, w, h = vals[1:5]
+    img_w, img_h = vals[-2], vals[-1]
+    label = {
+        "bboxes": [
+            {
+                "class_id": generate_config.SHAPE_TYPES.index(class_name),
+                "x1": float(x1) / float(img_w),
+                "y1": float(y1) / float(img_h),
+                "w": float(w) / float(img_w),
+                "h": float(h) / float(img_h),
+            },
+        ],
+        "image_id": images.index(original_tile_path.name),
+    }
+    return label, original_tile_path, save_dir / vals[-3]
+
+
+def _create_splits(
+    image_dir: pathlib.Path, save_dir: pathlib.Path, images: list, val_percent: int
+) -> None:
     with tempfile.TemporaryDirectory() as d:
-        tmp_train = pathlib.Path(d) / "train"
-        tmp_train.mkdir()
-        tmp_val = pathlib.Path(d) / "val"
-        tmp_val.mkdir()
+        tmp_train, tmp_val = _create_split_dirs(pathlib.Path(d))
         val_num = int(len(images) * val_percent / 100)
         val_imgs = images[:val_num]
         train_imgs = images[val_num:]
 
-        for img in val_imgs:
-            shutil.copy2(save_dir / img, tmp_val / img)
-            shutil.copy2(
-                (save_dir / img).with_suffix(".json"),
-                (tmp_val / img).with_suffix(".json"),
-            )
-
-        for img in train_imgs:
-            shutil.copy2(image_dir / img, tmp_train / img)
-            shutil.copy2(
-                (save_dir / img).with_suffix(".json"),
-                (tmp_train / img).with_suffix(".json"),
-            )
+        _copy_split(save_dir, tmp_val, val_imgs)
+        _copy_split(image_dir, tmp_train, train_imgs, labels_dir=save_dir)
 
         if val_percent < 100:
             create_detection_data.create_coco_metadata(
@@ -103,6 +110,31 @@ def parse_labels(
             tmp_val, save_dir.parent / "val_coco.json"
         )
 
+
+def _create_split_dirs(tmp_dir: pathlib.Path) -> tuple:
+    tmp_train = tmp_dir / "train"
+    tmp_train.mkdir()
+    tmp_val = tmp_dir / "val"
+    tmp_val.mkdir()
+    return tmp_train, tmp_val
+
+
+def _copy_split(
+    image_source: pathlib.Path,
+    split_dir: pathlib.Path,
+    images: list,
+    labels_dir: pathlib.Path = None,
+) -> None:
+    labels_dir = labels_dir or image_source
+    for img in images:
+        shutil.copy2(image_source / img, split_dir / img)
+        shutil.copy2(
+            (labels_dir / img).with_suffix(".json"),
+            (split_dir / img).with_suffix(".json"),
+        )
+
+
+def _upload_dataset(save_dir: pathlib.Path, upload: bool) -> None:
     if upload:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_archive = pathlib.Path(tmp_dir) / f"{save_dir.parent.name}.tar.gz"

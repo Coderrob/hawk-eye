@@ -8,7 +8,15 @@ import albumentations as albu
 
 def clf_train_augs(height: int, width: int) -> albu.Compose:
     """Training augmentations for classification. We prefer for this model to be really
-    robust. Feel free to tweak these paramters or ad other augmentations."""
+    robust. Feel free to tweak these paramters or ad other augmentations.
+
+    Args:
+        height: Output image height.
+        width: Output image width.
+
+    Returns:
+        Albumentations transform pipeline for classifier training.
+    """
 
     return albu.Compose(
         [
@@ -50,11 +58,29 @@ def clf_train_augs(height: int, width: int) -> albu.Compose:
 
 
 def clf_eval_augs(height: int, width: int) -> albu.Compose:
+    """Build evaluation augmentations for classification.
+
+    Args:
+        height: Output image height.
+        width: Output image width.
+
+    Returns:
+        Albumentations transform pipeline for classifier evaluation.
+    """
     return albu.Compose([albu.Resize(height=height, width=width), albu.Normalize()])
 
 
 # TODO(alex): Add some more augumentations here.
 def det_train_augs(height: int, width: int) -> albu.Compose:
+    """Build training augmentations for detection.
+
+    Args:
+        height: Output image height.
+        width: Output image width.
+
+    Returns:
+        Albumentations transform pipeline for detector training.
+    """
     return albu.Compose(
         [
             albu.Resize(height=height, width=width),
@@ -83,10 +109,28 @@ def det_train_augs(height: int, width: int) -> albu.Compose:
 
 
 def det_val_augs(height: int, width: int) -> albu.Compose:
+    """Build validation augmentations for detection.
+
+    Args:
+        height: Output image height.
+        width: Output image width.
+
+    Returns:
+        Albumentations transform pipeline for detector validation.
+    """
     return albu.Compose([albu.Resize(height=height, width=width), albu.Normalize()])
 
 
 def feature_extraction_aug(height: int, width: int) -> albu.Compose:
+    """Build augmentations for feature extraction datasets.
+
+    Args:
+        height: Output image height.
+        width: Output image width.
+
+    Returns:
+        Albumentations transform pipeline for feature extraction.
+    """
     return albu.Compose(
         [
             albu.Resize(height=height, width=width),

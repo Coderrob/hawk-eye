@@ -63,6 +63,9 @@ jobs:
     - name: Style Test
       run: flake8
 
+    - name: Quality Gates
+      run: python tools/quality_gates.py
+
     - name: Ensure .whl Tests Run
       run: ./setup.py test
 

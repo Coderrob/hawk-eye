@@ -27,7 +27,7 @@ from hawk_eye.train.train_utils import ema
 from hawk_eye.train.train_utils import logger
 from hawk_eye.train.train_utils import utils
 from hawk_eye.data_generation import generate_config
-from third_party.models import losses
+from third_party.detectron2 import losses
 from third_party import coco_eval
 
 _LOG_INTERVAL = 10

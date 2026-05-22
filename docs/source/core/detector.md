@@ -1,11 +1,6 @@
-.. role:: hidden
-    :class: hidden-section
+# hawk_eye.core.detector
 
-hawk_eye.core.detector
-===============================
-
-Overview
--------------------------------
+## Overview
 UAV uses object detectors to predict the shape type of the AUVSI SUAS targets.
 Currently, the detectors are defined by the RetinaNet architecrure with a
 backbone, FPN, RetinaNet head, and anchor box regression. This architecture
@@ -22,10 +17,10 @@ model to determine the alphanumeric (even a human sometimes can't). This is
 the motivating factor for why the object detectors we run only predict the
 shape class of the target.
 
-Module
--------------------------------
-.. todo::
-    Write function docs.
-
-.. automodule:: hawk_eye.core.detector
-   :members:
+## Module
+```{todo}
+Write function docs.
+```
+```{automodule} hawk_eye.core.detector
+:members:
+```

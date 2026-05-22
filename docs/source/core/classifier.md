@@ -1,12 +1,6 @@
-.. role:: hidden
-    :class: hidden-section
+# hawk_eye.core.classifier
 
-
-hawk_eye.core.classifier
-================================
-
-Overview
---------------------------------
+## Overview
 Image classification aims to assign a class to an image. For UAV, we are focued
 on determining if an image is either "background" or "target." A background image
 does not contain one of the AUVSI SUAS targets that we are interested. A image
@@ -20,7 +14,7 @@ for the slower object detector. As technology improves, it might be possible to
 remove the classifier from the step completely and solely rely on the detector to
 process each image.
 
-Module
---------------------------------
-.. automodule:: hawk_eye.core.classifier
-   :members:
+## Module
+```{automodule} hawk_eye.core.classifier
+:members:
+```

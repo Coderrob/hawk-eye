@@ -38,6 +38,7 @@ release = "0.0.2b0"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.doctest",
@@ -82,7 +83,10 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
-source_suffix = ".rst"
+source_suffix = {
+    ".md": "markdown",
+    ".rst": "restructuredtext",
+}
 # The master toctree document.
 master_doc = "index"
 
@@ -110,5 +114,5 @@ html_context = {
     "github_repo": docs_repo,
     "github_version": "master",
     "conf_py_path": "/docs/",
-    "source_suffix": ".rst",
+    "source_suffix": ".md",
 }

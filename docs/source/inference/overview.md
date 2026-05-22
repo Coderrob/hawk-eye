@@ -1,7 +1,6 @@
-Overview
-===============
+# Overview
 
-The ``hawk_eye`` inference application uses a combination of binary classification
+The `hawk_eye` inference application uses a combination of binary classification
 and object detectors to find our targets.
 
 Here is a gist of the pipeline:
@@ -19,8 +18,7 @@ Here is a gist of the pipeline:
     4. With a known location of the target in the smaller image, we transform the
        target's location into the coordinate space of the original image.
 
-Future Work
---------------
+## Future Work
 
 We need to also determine the alphanumeric present on the target and the colors of the
 alphanumeric and shape. This can be challenging when the alphanumeric is barely visible.

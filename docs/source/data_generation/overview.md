@@ -1,8 +1,4 @@
-.. role:: hidden
-    :class: hidden-section
-
-Overview
-=================================
+# Overview
 
 To train deep neural nets, we need a lot of data; typically, the more the better.
 It's also best practice to have the training data's distribution match the
@@ -20,8 +16,7 @@ A downside to artifical data is it's not a perfect representation of the real ta
 There are some artifacts in the shape edges, predictable color characteristics, among
 other things that allow our models to learn quite quickly what is a fake target.
 
-Future Work
-----------------------------------
+## Future Work
 
 In no particular order of importance, here is a list of future avenues to pursue in
 regards to data generation and collection.

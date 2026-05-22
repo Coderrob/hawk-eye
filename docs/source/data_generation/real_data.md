@@ -1,8 +1,4 @@
-.. role:: hidden
-    :class: hidden-section
-
-Real Image Datasets
-===========================
+# Real Image Datasets
 
 Occasionally, we will have a test flight where image rec is able to capture real
 pictures of the targets we bring to the airfield. This type of data is ideal for
@@ -17,9 +13,7 @@ might reach a point where we have enough flight test data to train a model.
 Since this is not the case (2021), we've devised a scheme for training a model
 on completely synthetic data first, then finetuning on the real images we do have.
 
-
-Creating a Real Image Dataset
-------------------------------
+## Creating a Real Image Dataset
 
 1. The first step is to acquire the images from the plane.
 
@@ -45,7 +39,7 @@ Creating a Real Image Dataset
    sort through these tiles and remove the boundground tiles before labeling the targets.
    This will also make uploading the images to the browser-based labeling tool quicker.
 
-5.  Go to `Make Sense <https://www.makesense.ai/>`_ to label the data.
+5.  Go to [Make Sense](https://www.makesense.ai/) to label the data.
 
     1. Click the "Get Started" button in the bottom right corner of the screen.
 
@@ -54,9 +48,9 @@ Creating a Real Image Dataset
 
     3. Select "Object Detection"
 
-    4. A prompt will come up asking for a labels file. Inside of your ``save_dir``
-       specified in the call to ``slice_images.py``, a file called ``labels.txt`` was
-       generated. Click the "Load Labels from File" button and upload ``labels.txt``
+    4. A prompt will come up asking for a labels file. Inside of your `save_dir`
+       specified in the call to `slice_images.py`, a file called `labels.txt` was
+       generated. Click the "Load Labels from File" button and upload `labels.txt`
        into the browser prompt.
 
     5. Click "Create Labels List" then click "Start Project"
@@ -84,17 +78,16 @@ Creating a Real Image Dataset
             --csv_path /downloaded/csv/file \
             --val_percent 100
 
-    - Note, the ``image_dir`` arg should be the same folder of images uploaded to Make Sense.
-      Please name the ``save_dir`` dataset as follows: ``dataset_type_YYYYMMDD``.
+    - Note, the `image_dir` arg should be the same folder of images uploaded to Make Sense.
+      Please name the `save_dir` dataset as follows: `dataset_type_YYYYMMDD`.
 
 10. This dataset can now be uploaded to Google Cloud and used for evaluation and training.
 
-hawk_eye.data_generation.process_labels
-----------------------------------------
-.. automodule:: hawk_eye.data_generation.process_labels
-   :members:
-
-hawk_eye.data_generation.slice_image
-----------------------------------------
-.. automodule:: hawk_eye.data_generation.slice_image
-   :members:
+## hawk_eye.data_generation.process_labels
+```{automodule} hawk_eye.data_generation.process_labels
+:members:
+```
+## hawk_eye.data_generation.slice_image
+```{automodule} hawk_eye.data_generation.slice_image
+:members:
+```
